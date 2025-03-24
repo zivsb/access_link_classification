@@ -8,7 +8,8 @@ def process_one_row_simple(row, file_path):
       throughput_upload, throughput_download, IP,
       series_upload, and series_download.
     
-    The merged series are converted to JSON strings.
+    The merged series are converted to JSON strings with numeric values
+    converted from strings.
     
     Parameters:
       row: tuple (download_uuid, upload_uuid, connection_type)
@@ -57,9 +58,28 @@ def process_one_row_simple(row, file_path):
         renamed_tcp = {f"TCP.{k}": v for k, v in tcp.items()}
         merged_upload.append({**renamed_bbr, **renamed_tcp})
 
-    # Convert merged arrays to standard JSON strings
-    download_json = json.dumps(merged_download)
-    upload_json = json.dumps(merged_upload)
+    # Helper function to convert numeric strings to numbers
+    def convert_numeric_strings(obj):
+        if isinstance(obj, dict):
+            return {k: convert_numeric_strings(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_numeric_strings(e) for e in obj]
+        else:
+            try:
+                if isinstance(obj, str) and obj.strip() != "":
+                    n = float(obj)
+                    return int(n) if n.is_integer() else n
+            except Exception:
+                pass
+            return obj
+
+    # Convert numeric strings in the merged data
+    cleaned_download = convert_numeric_strings(merged_download)
+    cleaned_upload = convert_numeric_strings(merged_upload)
+
+    # Convert the cleaned data to JSON strings.
+    download_json = json.dumps(cleaned_download)
+    upload_json = json.dumps(cleaned_upload)
 
     # Build final output dictionary
     combined_row = {
@@ -70,7 +90,11 @@ def process_one_row_simple(row, file_path):
         "throughput_download": throughput_download,
         "IP": client_ip,
         "series_upload": upload_json,
-        "series_download": download_json,
+        "series_download": upload_json,
     }
+    # Note: Make sure to use upload_json for series_upload? If that was a typo, use upload_json and download_json appropriately.
+    # For example, if series_upload should come from the upload measurements, then:
+    combined_row["series_upload"] = upload_json
+    combined_row["series_download"] = download_json
 
     return combined_row
