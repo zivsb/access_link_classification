@@ -1,6 +1,7 @@
 # Ignore large datasets
 data_pipelines/campus_processing/campus_standard_form.csv
 data_pipelines/el_processing/el_standard_form.csv
+data_pipelines/base_to_queue_represent/campus_queue_processed.csv
 
 # Ignore all delete.txt files in any subdirectory
 **/delete.txt
